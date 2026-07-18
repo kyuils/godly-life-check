@@ -1,6 +1,11 @@
 # 구글 시트 생성 및 탭 구성
 
-## 새 스프레드시트 생성
+> **이미 완료됨 (2026-07-19)**: `경건생활점검 DB` 스프레드시트가 kyuils@gmail.com 드라이브에 생성되어 있다.
+> https://docs.google.com/spreadsheets/d/1SEsp65ufwjrxg-xv8dpUfO39tpDnSUmH0nXvwu7PsxI/edit
+> 탭·헤더·role 드롭다운·최초 관리자 등록은 `03-deploy-gas.md`의 `setupAll()` 실행이 자동으로 처리하므로
+> **이 문서의 수동 절차는 건너뛰어도 된다.** 아래 내용은 스키마 참고용/수동 복구용이다.
+
+## 새 스프레드시트 생성 (수동 — 필요 시에만)
 1. https://sheets.new 접속 (또는 Google Drive → 새로 만들기 → Google 스프레드시트).
 2. 이름을 정한다. 예: `경건생활점검 데이터`.
 3. URL의 `/d/<ID>/edit` 부분에서 시트 ID를 메모해 둔다. 이후 GAS Script Properties(`03-deploy-gas.md`)에 입력한다.

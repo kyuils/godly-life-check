@@ -14,7 +14,7 @@
 
 **방법 A: 직접 붙여넣기 (clasp 없이)**
 1. Apps Script IDE 좌측 파일 목록에서 기본 `Code.gs`를 이 저장소의 `gas/Code.gs` 내용으로 덮어쓴다.
-2. `+` → 스크립트 파일 추가로 `Auth.gs`, `Sheet.gs`, `Actions.gs`를 각각 만들고 이 저장소 `gas/` 폴더의 동일 이름 파일 내용을 그대로 붙여넣는다.
+2. `+` → 스크립트 파일 추가로 `Auth.gs`, `Sheet.gs`, `Actions.gs`, `Setup.gs`를 각각 만들고 이 저장소 `gas/` 폴더의 동일 이름 파일 내용을 그대로 붙여넣는다. (파일 순서는 동작에 영향 없다 — 코드가 순서 독립적으로 작성되어 있다)
 3. 프로젝트 설정(⚙) → "appsscript.json 매니페스트 파일을 편집기에서 보기" 체크 → `appsscript.json` 탭이 보이면 이 저장소 `gas/appsscript.json` 내용으로 교체한다(runtimeVersion, webapp 설정 등).
 
 **방법 B: clasp 사용 (1회 설치)**
@@ -29,16 +29,18 @@ clasp push
 ```
 이후 코드를 수정할 때마다 `clasp push`로 반영한다.
 
-## 2) Script Properties 등록
+## 2) 초기화 실행 (Setup.gs — Script Properties·시트 탭 자동 구성)
 
-Apps Script IDE → 프로젝트 설정(⚙) → "스크립트 속성" → "스크립트 속성 추가":
+`Setup.gs`에 시트 ID(`경건생활점검 DB`)가 이미 내장되어 있다. 수동으로 스크립트 속성을 만들 필요 없이:
 
-| 속성 | 값 |
-|---|---|
-| `SHEET_ID` | `02-setup-sheet.md`에서 메모한 시트 ID |
-| `OAUTH_CLIENT_ID` | `01-setup-google-cloud.md`에서 발급한 Client ID |
+1. `Setup.gs` 상단 `SETUP_OAUTH_CLIENT_ID`에 `01-setup-google-cloud.md`에서 발급한 Client ID를 붙여넣는다.
+2. 편집기 상단 함수 선택 → `setupAll` → 실행. 최초 실행 시 권한 승인 창이 뜬다(본인 계정 선택 → 허용).
+3. 실행 로그에 `SETUP COMPLETE`가 나오면: Script Properties(SHEET_ID, OAUTH_CLIENT_ID) 등록,
+   MEMBERS/RECORDS 탭·헤더·role 드롭다운 생성, 최초 관리자(kyuils@gmail.com) 등록까지 완료된 것이다.
+   여러 번 실행해도 안전하다(멱등).
 
-두 값 모두 빠지면 서버가 `server_misconfig` 에러를 반환한다(`06-operations.md` 문제 해결 참고).
+(수동 등록이 필요하면: 프로젝트 설정(⚙) → "스크립트 속성"에 `SHEET_ID`, `OAUTH_CLIENT_ID` 직접 추가.
+두 값 중 하나라도 빠지면 서버가 `server_misconfig` 에러를 반환한다 — `06-operations.md` 참고.)
 
 ## 3) 배포
 
