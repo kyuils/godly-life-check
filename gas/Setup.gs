@@ -8,7 +8,7 @@
 
 // 경건생활점검 DB 스프레드시트 (kyuils@gmail.com 드라이브에 생성됨, 2026-07-19)
 const SETUP_SHEET_ID = '1SEsp65ufwjrxg-xv8dpUfO39tpDnSUmH0nXvwu7PsxI';
-const SETUP_OAUTH_CLIENT_ID = 'PASTE_CLIENT_ID_HERE';
+const SETUP_OAUTH_CLIENT_ID = '90527666620-ududtg9blamqqp06v7i21uo4loijqs12.apps.googleusercontent.com';
 
 // 최초 관리자 계정 — MEMBERS 탭이 새로 만들어질 때 이 계정을 admin으로 등록한다.
 const SETUP_ADMIN_EMAIL = 'kyuils@gmail.com';
