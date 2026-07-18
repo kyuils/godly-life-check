@@ -1,21 +1,27 @@
 // Code.gs — entry point and action router.
 
-const ACTIONS = {
-  whoami: handleWhoami,
-  getMyRecords: handleGetMyRecords,
-  setRecord: handleSetRecord,
-  getAllRecords: handleGetAllRecords,
-  getMembers: handleGetMembers,
-};
+// Resolved at call time (not file-evaluation time) so the handler functions in
+// Actions.gs need not be evaluated before this file — GAS evaluates .gs files
+// in editor order, which deployers must not have to care about.
+function getHandler_(action) {
+  const ACTIONS = {
+    whoami: handleWhoami,
+    getMyRecords: handleGetMyRecords,
+    setRecord: handleSetRecord,
+    getAllRecords: handleGetAllRecords,
+    getMembers: handleGetMembers,
+  };
+  return ACTIONS[action] || null;
+}
 
 function doPost(e) {
   try {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const action = body.action;
-    if (!action || !ACTIONS[action]) {
+    const handler = action ? getHandler_(action) : null;
+    if (!handler) {
       return jsonOut({ ok: false, code: 'unknown_action', action });
     }
-    const handler = ACTIONS[action];
     const result = handler(body);
     return jsonOut(result);
   } catch (err) {

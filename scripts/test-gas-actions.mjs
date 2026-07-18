@@ -66,7 +66,7 @@ section('1. whoami');
   eq('등재 학생 → role', res1.role, 'student');
 
   const res2 = h.callAction({ action: 'whoami', idToken: 'mock:nobody@example.com' });
-  eq('미등재 email → unauthorized', res2, { ok: false, code: 'unauthorized' });
+  eq('미등재 email → unauthorized', res2, { ok: false, code: 'unauthorized', email: 'nobody@example.com' });
 
   const res3 = h.callAction({ action: 'whoami', idToken: 'not-a-mock-token' });
   eq('잘못된 토큰 → invalid_token', res3.ok, false);
@@ -76,7 +76,7 @@ section('1. whoami');
   eq('토큰 없음 → no_token', res4, { ok: false, code: 'no_token' });
 
   const res5 = h.callAction({ action: 'whoami', idToken: 'mock:inactive@example.com' });
-  eq('비활성 학생 → unauthorized (보너스)', res5, { ok: false, code: 'unauthorized' });
+  eq('비활성 학생 → unauthorized (보너스)', res5, { ok: false, code: 'unauthorized', email: 'inactive@example.com' });
 }
 
 // ============================================================
@@ -243,6 +243,47 @@ section('5. getMembers');
   eq('활성 학생 이메일 집합', memberEmails, ['student1@example.com', 'student2@example.com']);
   const memberRoles = teacherRes.members.map((m) => m.role);
   report('teacher/비활성 학생 미포함', memberRoles.every((r) => r === 'student'));
+}
+
+// ============================================================
+// 6. 리뷰 반영 회귀 테스트 (파일 평가 순서, role 정규화, 엄격 bool)
+// ============================================================
+section('6. 리뷰 반영 회귀');
+{
+  // GAS는 편집기 파일 순서로 평가한다 — Code.gs가 첫 번째여도 동작해야 한다.
+  const worstOrder = createHarness({
+    members: BASE_MEMBERS,
+    records: [],
+    fileOrder: ['Code.gs', 'Actions.gs', 'Auth.gs', 'Sheet.gs'],
+  });
+  const orderRes = worstOrder.callAction({ action: 'whoami', idToken: 'mock:student1@example.com' });
+  eq('Code.gs 최우선 평가 순서에서도 whoami ok', orderRes.ok, true);
+
+  // MEMBERS는 수기 입력 — role의 공백/대소문자 편차를 허용해야 한다.
+  const messyMembers = [
+    { email: 'student1@example.com', '이름': '홍길동', role: ' STUDENT', '파트': '싱어', active: 'TRUE' },
+    { email: 'teacher@example.com', '이름': '김교사', role: 'Teacher ', '파트': '', active: 'TRUE' },
+  ];
+  const messy = createHarness({ members: messyMembers, records: [] });
+  const messyTeacher = messy.callAction({ action: 'getMembers', idToken: 'mock:teacher@example.com' });
+  eq("role 'Teacher ' → 교사 권한 인정 (getMembers ok)", messyTeacher.ok, true);
+  eq("role ' STUDENT' → 학생 명단에 포함", messyTeacher.members.map((m) => m.email), ['student1@example.com']);
+  const messyWho = messy.callAction({ action: 'whoami', idToken: 'mock:teacher@example.com' });
+  eq('whoami role이 정규화되어 반환', messyWho.role, 'teacher');
+
+  // 계약은 bool — 문자열 "false"는 truthy지만 TRUE로 저장되면 안 된다.
+  const strict = createHarness({ members: BASE_MEMBERS, records: [] });
+  const strictToday = strict.todayStr();
+  const strictRes = strict.callAction({
+    action: 'setRecord', idToken: 'mock:student1@example.com',
+    date: strictToday, wordRead: 'false', verse: '', resolution: '', retreatPrayer: 'false',
+  });
+  eq('문자열 "false" setRecord → ok', strictRes.ok, true);
+  const strictData = strict.sheets.RECORDS.data;
+  const col = (name) => strictData[0].indexOf(name);
+  const strictRow = strictData.find((row, i) => i > 0 && row[col('날짜')] === strictToday);
+  eq('문자열 "false" wordRead → FALSE 저장', strictRow[col('말씀읽음')], 'FALSE');
+  eq('문자열 "false" retreatPrayer → FALSE 저장', strictRow[col('수련회기도')], 'FALSE');
 }
 
 // ============================================================

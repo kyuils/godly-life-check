@@ -90,10 +90,10 @@ function handleSetRecord(body) {
       '날짜': date,
       'email': auth.email,
       '이름': auth.name,
-      '말씀읽음': body.wordRead ? 'TRUE' : 'FALSE',
+      '말씀읽음': body.wordRead === true ? 'TRUE' : 'FALSE',
       '와닿은말씀': sanitizeCell_(body.verse || ''),
       '결단': sanitizeCell_(body.resolution || ''),
-      '수련회기도': body.retreatPrayer ? 'TRUE' : 'FALSE',
+      '수련회기도': body.retreatPrayer === true ? 'TRUE' : 'FALSE',
       '기록시각': existing ? (existing['기록시각'] || now) : now,
       '수정시각': now,
     };
@@ -140,7 +140,7 @@ function handleGetMembers(body) {
   if (!isTeacher_(auth)) return { ok: false, code: 'forbidden' };
 
   const members = readTable_(SHEET_NAMES.MEMBERS).rows
-    .filter((r) => String(r.role || 'student').trim() === 'student' && isActive_(r.active))
+    .filter((r) => String(r.role || 'student').trim().toLowerCase() === 'student' && isActive_(r.active))
     .map((r) => ({
       email: String(r.email || '').toLowerCase().trim(),
       name: String(r['이름'] || ''),

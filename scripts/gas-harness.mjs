@@ -17,10 +17,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const GAS_DIR = path.join(__dirname, '..', 'gas');
 
-// Load order doesn't matter for correctness (functions resolve identifiers
-// at call time, not at parse time), but this mirrors the dependency chain:
-// Sheet.gs (I/O utils) → Auth.gs (uses Sheet.gs) → Actions.gs (uses both) →
-// Code.gs (router, uses Actions.gs).
+// GAS evaluates .gs files in editor order, which deployers can't be expected
+// to control — the backend must work under ANY order (top-level code must not
+// reference functions from other files at evaluation time). Tests exercise a
+// worst-case order via the fileOrder option of createHarness.
 const GAS_FILES = ['Sheet.gs', 'Auth.gs', 'Actions.gs', 'Code.gs'];
 
 export const MEMBERS_HEADERS = ['email', '이름', 'role', '파트', 'active'];
@@ -221,7 +221,8 @@ export function createHarness(seed = {}) {
   };
 
   const context = vm.createContext(sandbox);
-  for (const file of GAS_FILES) {
+  const fileOrder = seed.fileOrder || GAS_FILES;
+  for (const file of fileOrder) {
     const code = fs.readFileSync(path.join(GAS_DIR, file), 'utf8');
     vm.runInContext(code, context, { filename: file });
   }

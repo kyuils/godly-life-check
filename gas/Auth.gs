@@ -77,7 +77,8 @@ function lookupMember(email) {
   return {
     email: lower,
     name: String(found['이름'] || ''),
-    role: String(found.role || 'student'),
+    // MEMBERS is hand-edited; tolerate stray whitespace/casing ('Teacher ').
+    role: String(found.role || 'student').trim().toLowerCase(),
     part: String(found['파트'] || ''),
   };
 }
@@ -87,7 +88,7 @@ function authenticate(body) {
   const v = verifyIdToken(body && body.idToken);
   if (!v.ok) return v;
   const m = lookupMember(v.email);
-  if (!m) return { ok: false, code: 'unauthorized' };
+  if (!m) return { ok: false, code: 'unauthorized', email: v.email };
   return { ok: true, email: m.email, name: m.name, role: m.role, part: m.part };
 }
 

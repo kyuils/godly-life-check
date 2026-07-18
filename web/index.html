@@ -874,7 +874,7 @@
       return (
         <div className="login">
           <h1>접근 권한이 없어요</h1>
-          <p>{email} 계정은 찬양팀 명단에 등록되지 않았습니다.</p>
+          <p>{email ? email + ' 계정은' : '로그인한 계정은'} 찬양팀 명단에 등록되지 않았습니다.</p>
           <p>담당 교사에게 등록을 요청하세요.</p>
           <button className="btn ghost" onClick={onSignOut}>다른 계정으로 로그인</button>
         </div>
@@ -1331,7 +1331,8 @@
               <button className="team-card" key={mem.email} onClick={() => setDetailStudent({ email: mem.email, name: mem.name })}>
                 <div className="team-top">
                   <span className="team-name">{mem.name}</span>
-                  <span className="team-stat">연속 <b>{streak}</b>일 · 주간 {wr.pct}%</span>
+                  {/* getAllRecords는 후행 60일 윈도우라 그 이상의 연속 기록은 정확한 값을 알 수 없다 */}
+                  <span className="team-stat">연속 <b>{streak >= 60 ? '60+' : streak}</b>일 · 주간 {wr.pct}%</span>
                 </div>
                 <div className="team-week">
                   {last7.map((d) => (
