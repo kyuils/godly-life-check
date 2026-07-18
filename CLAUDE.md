@@ -20,10 +20,14 @@
 - 디자인은 출석부(youth_group)와 동일한 디자인 시스템을 사용한다.
 
 ## 명령어
-- 검증(전체): `node scripts/check-web.mjs && node scripts/test-gas-actions.mjs`
+- 검증(전체): `node scripts/check-web.mjs && node scripts/test-gas-actions.mjs && node scripts/test-stats-utils.mjs && node scripts/test-mccheyne.mjs`
 - 프론트 정적 검사: `node scripts/check-web.mjs`
 - GAS 로직 단위 테스트(모의 SpreadsheetApp): `node scripts/test-gas-actions.mjs`
-- 로컬 미리보기: 모의 API 서버 `node scripts/mock-server.mjs` 후 브라우저에서 확인
+- 지표/독려 메시지 단위 테스트: `node scripts/test-stats-utils.mjs`
+- 맥체인 데이터 검증: `node scripts/test-mccheyne.mjs`
+- 로컬 미리보기: `node scripts/mock-server.mjs 8787` 실행 후 브라우저에서 http://localhost:8787
+  (로그인까지 보려면 `web/index.html`의 `APP_CONFIG`를 임시로 `GAS_URL:'/api', MOCK:'student1@example.com'`으로 바꾼다.
+  교사 화면은 `MOCK:'teacher@example.com'`. **커밋 전 반드시 placeholder로 복원**)
 
 ## 규칙 (에이전트·서브에이전트 공통 — 반드시 준수)
 - **작업 범위**: 이 저장소(`E:\00_WORKSPACE\경건생활점검`) 밖의 파일을 수정하지 않는다.
