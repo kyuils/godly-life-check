@@ -83,3 +83,37 @@
 | 우리팀 | (teacher/admin만) 학생별 최근 7일 ○/× 그리드 + streak/달성률 요약, 학생 탭→상세 기록 바텀시트 |
 
 - 도메인 4색: `--dev-read`=green(말씀읽음), `--dev-verse`=blue(와닿은말씀), `--dev-resolve`=violet(결단), `--dev-prayer`=orange(수련회기도).
+
+## 7. 자가 등록 (v1.1, 2026-07-19 시니어 검토 반영 확정)
+
+### Script Property `REGISTER_CODE`
+- 팀 등록 코드. Setup.gs `setupAll()`이 미설정일 때만 기본값을 넣는다(운영 중 변경값 보존).
+- **빈 값/미설정이면 등록 폐쇄**: `register`는 `registration_closed`, `whoami.canRegister`는 false (C-2).
+
+### `whoami` 변경 (하위호환 additive)
+- 미등재(`unauthorized` 코드 경로에만): `{ok:false, code:'unauthorized', email, canRegister:bool}`
+- `canRegister` = `REGISTER_CODE`가 trim 후 길이>0. 다른 에러 코드(token_expired 등)에는 부착하지 않는다.
+
+### 신규 액션 `register`
+- 파라미터: `name`(필수), `part`(선택), `code`(필수)
+- 검증 순서: idToken 검증(실패 시 해당 에러) → 백오프 검사 → 코드 대조 → 중복 검사 → append
+- **코드 비교 정규화 (R-2)**: 양쪽 모두 trim + 소문자화 + 내부 공백 제거 후 비교. 불일치 → `bad_code`
+- **백오프 (R-1)**: email 키 CacheService 카운터 — 10분 창에서 `bad_code` 5회 초과 시 `too_many_attempts`
+- **중복 검사 (C-1)**: `lookupMember`를 쓰지 않는다. MEMBERS **원시 스캔**(active 무관, email 대소문자 무시)으로:
+  - 활성 행 존재 → `already_registered` / 비활성 행 존재 → `deactivated`(재가입으로 활성화 불가 — 교사만 복구) / 없음 → append
+  - **스캔→append 전체를 LockService 잠금 안에서** 수행 (중복 가입 레이스 방지)
+- **이름 검증 (R-4)**: trim 후 빈 값 거부, 개행·제어문자 제거, 코드포인트 ≤30자(part ≤20자), 초과/누락 → `bad_request`, `sanitizeCell_` 적용
+- **서버 강제 불변식**: 기록 행은 `[토큰 email(소문자), name, 'student', part, 'TRUE']` — 클라이언트의 role/active/email은 무시
+- 성공 응답: `{ok:true, email, name, role:'student', part}` (whoami 성공과 동일 shape — 프론트는 이 응답으로 바로 진입 가능, R-5)
+
+### 프론트 (§6 확장)
+- 미등재 & `canRegister` → **RegisterScreen**: 로그인 email 표시, 이름(필수)·파트(선택)·등록 코드 입력, 등록 버튼(전송 중 disable — 더블서브밋 방지), 에러별 안내(bad_code/deactivated/too_many_attempts/registration_closed)
+- 미등재 & !canRegister → 기존 안내 화면 유지 (구백엔드와도 자연 호환)
+- 우리팀 학생 상세 바텀시트 헤더에 email 병기 (동명이인·사칭 구분, R-4)
+
+### 배포 순서 (C-3)
+1. GAS: 코드 반영 후 **반드시 "배포 관리 → 기존 배포 수정 → 새 버전"** (새 배포 금지 — URL이 바뀌면 프론트가 구 백엔드를 호출)
+2. 프론트 push (Pages 자동 재배포)
+
+### v1.1 백로그 (감사 흔적, R-3)
+- MEMBERS에 `가입시각`/`가입경로(self|admin)` 컬럼 추가는 차기 버전에서 검토. 현재는 자가등록분 구분 불가함을 운영 문서에 명시.
