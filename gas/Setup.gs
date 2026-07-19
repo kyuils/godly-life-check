@@ -14,9 +14,11 @@ const SETUP_OAUTH_CLIENT_ID = '90527666620-ududtg9blamqqp06v7i21uo4loijqs12.apps
 const SETUP_ADMIN_EMAIL = 'kyuils@gmail.com';
 const SETUP_ADMIN_NAME = '관리자';
 
-// 자가 등록 팀 코드 기본값 (contract §7). setupAll()은 REGISTER_CODE가
-// 미설정일 때만 이 값을 넣는다 — 운영 중 바꾼 값을 덮어쓰지 않는다.
-const SETUP_REGISTER_CODE = 'praise2026';
+// 자가 등록 팀 코드 (contract §7). 이 저장소는 공개이므로 실제 코드를 여기 두지
+// 않는다 — 코드 자체가 접근 통제 게이트이기 때문. GAS 편집기에서만 실제 값을
+// 붙여넣고 setupAll()을 실행하거나, Script Properties에서 REGISTER_CODE를 직접
+// 관리한다. placeholder 상태로 실행하면 등록은 폐쇄(registration_closed)로 남는다.
+const SETUP_REGISTER_CODE = 'PASTE_REGISTER_CODE_HERE';
 
 function setupAll() {
   setupProperties_();
@@ -35,12 +37,20 @@ function setupProperties_() {
       '01 문서에서 클라이언트 ID 발급 후 SETUP_OAUTH_CLIENT_ID에 붙여넣고 setupAll을 다시 실행하세요.');
   }
 
-  // REGISTER_CODE는 미설정일 때만 기본값을 넣는다 — 운영 중 변경한 값을 보존한다.
-  if (!props.getProperty('REGISTER_CODE')) {
-    props.setProperty('REGISTER_CODE', SETUP_REGISTER_CODE);
-    Logger.log('Script Properties: REGISTER_CODE 기본값(' + SETUP_REGISTER_CODE + ') 설정 완료');
-  } else {
+  // REGISTER_CODE는 미설정(trim 후 빈 값 — registerCodeConfigured_와 동일 기준)일
+  // 때만 넣는다 — 운영 중 변경한 값을 보존한다. placeholder 상수는 넣지 않는다.
+  const existingCode = props.getProperty('REGISTER_CODE');
+  const constUsable = SETUP_REGISTER_CODE &&
+    SETUP_REGISTER_CODE !== 'PASTE_REGISTER_CODE_HERE' &&
+    String(SETUP_REGISTER_CODE).trim().length > 0;
+  if (existingCode && String(existingCode).trim().length > 0) {
     Logger.log('Script Properties: REGISTER_CODE 기존 값 유지(운영 중 변경값 보존)');
+  } else if (constUsable) {
+    props.setProperty('REGISTER_CODE', String(SETUP_REGISTER_CODE).trim());
+    Logger.log('Script Properties: REGISTER_CODE 설정 완료');
+  } else {
+    Logger.log('Script Properties: REGISTER_CODE 미설정 — 등록은 폐쇄 상태(registration_closed). ' +
+      'SETUP_REGISTER_CODE에 실제 코드를 붙여넣고 재실행하거나 스크립트 속성에서 직접 설정하세요.');
   }
 }
 

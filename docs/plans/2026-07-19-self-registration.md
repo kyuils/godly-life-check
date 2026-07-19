@@ -20,7 +20,8 @@
 | B. 교사 승인 대기 | 통제 최강 | 교사 운영 부담, 학생 즉시 사용 불가 |
 | C. **등록 코드(팀 코드)** ← 채택 | 마찰 낮음(코드 1회 입력), 외부인 차단, 즉시 사용 | 코드 유출 시 가입 가능(교사가 비활성 처리로 대응) |
 
-**채택: C안.** 팀 공지로 코드를 공유하고, 가입 즉시 active=TRUE로 사용 시작. 잘못 가입한 계정은 교사가 시트에서 `active=FALSE` 처리. 코드는 Script Property `REGISTER_CODE`로 관리(기본값 `praise2026`, 시트/속성에서 변경 가능).
+**채택: C안.** 팀 공지로 코드를 공유하고, 가입 즉시 active=TRUE로 사용 시작. 잘못 가입한 계정은 교사가 시트에서 `active=FALSE` 처리. 코드는 Script Property `REGISTER_CODE`로 관리.
+(코드 리뷰 반영 2026-07-19: 실제 코드값은 공개 저장소에 커밋하지 않는다 — Setup.gs는 placeholder, 실값은 GAS 속성에만.)
 
 ## 3. 계약 변경 (docs/specs 반영 예정)
 
@@ -36,7 +37,7 @@
 - 미등재 시: `{ok:false, code:'unauthorized', email, canRegister:true}` — `canRegister`는 `REGISTER_CODE` 속성이 설정된 경우 true. 프론트는 이 플래그로 가입 화면 표시.
 
 ### Setup.gs
-- `SETUP_REGISTER_CODE` 상수(기본 `praise2026`) → setupAll 시 `REGISTER_CODE` 속성 설정(이미 있으면 유지 — 운영 중 변경한 코드를 덮어쓰지 않음).
+- `SETUP_REGISTER_CODE` 상수(placeholder — 실값은 GAS 편집기에서만 주입) → setupAll 시 `REGISTER_CODE` 속성 설정(이미 있으면 유지 — 운영 중 변경한 코드를 덮어쓰지 않음).
 
 ### MEMBERS 시트
 - 스키마 변경 없음. (등록 경로만 추가)

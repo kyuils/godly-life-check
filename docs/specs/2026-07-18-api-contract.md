@@ -96,7 +96,7 @@
 
 ### 신규 액션 `register`
 - 파라미터: `name`(필수), `part`(선택), `code`(필수)
-- 검증 순서: idToken 검증(실패 시 해당 에러) → 백오프 검사 → 코드 대조 → 중복 검사 → append
+- 검증 순서: idToken 검증(실패 시 해당 에러) → 이름/파트 검증(`bad_request` — 백오프 카운터와 무관) → 백오프 검사 → 등록 폐쇄 검사 → 코드 대조 → 중복 검사 → append
 - **코드 비교 정규화 (R-2)**: 양쪽 모두 trim + 소문자화 + 내부 공백 제거 후 비교. 불일치 → `bad_code`
 - **백오프 (R-1)**: email 키 CacheService 카운터 — 10분 창에서 `bad_code` 5회 초과 시 `too_many_attempts`
 - **중복 검사 (C-1)**: `lookupMember`를 쓰지 않는다. MEMBERS **원시 스캔**(active 무관, email 대소문자 무시)으로:

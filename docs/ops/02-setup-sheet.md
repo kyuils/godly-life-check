@@ -46,7 +46,7 @@ email | 이름 | role | 파트 | active
 - **교사(role=teacher/admin) 지정**: 자가 등록은 항상 `role=student` 행만 생성하므로, 교사 계정은 여전히 이 시트에서 수동으로 추가해야 한다(`06-operations.md` "교사 추가/변경" 참고).
 - **특수 케이스**: 등록이 폐쇄된 상태(`REGISTER_CODE` 미설정)에서 특정 인원을 급히 추가해야 하거나, 학생이 자가 등록에 계속 실패하는 등 예외적인 상황.
 
-등록 코드는 GAS Script Property `REGISTER_CODE`로 관리한다(기본값 `praise2026`). `Setup.gs`의 `setupAll()`은 이 속성이 **미설정일 때만** 기본값을 심으므로, 운영 중 변경한 코드값은 재실행해도 덮어써지지 않는다. 코드 공유·변경·유출 대응 절차는 `06-operations.md`의 "등록 코드 운영" 항목을 참고한다.
+등록 코드는 GAS Script Property `REGISTER_CODE`로 관리한다. **저장소는 공개이므로 실제 코드는 코드베이스에 두지 않는다** — `Setup.gs`의 `SETUP_REGISTER_CODE`는 placeholder이며, GAS 편집기에서만 실제 값을 붙여넣고 `setupAll()`을 실행한다(이미 설정된 값은 재실행해도 덮어써지지 않음). 코드가 미설정이면 등록은 폐쇄 상태(`registration_closed`)가 된다. 코드 공유·변경·유출 대응 절차는 `06-operations.md`의 "등록 코드 운영" 항목을 참고한다.
 
 ### RECORDS
 

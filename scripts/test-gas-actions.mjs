@@ -69,8 +69,7 @@ section('1. whoami');
   eq('미등재 email → unauthorized', res2, { ok: false, code: 'unauthorized', email: 'nobody@example.com', canRegister: true });
 
   const res3 = h.callAction({ action: 'whoami', idToken: 'not-a-mock-token' });
-  eq('잘못된 토큰 → invalid_token', res3.ok, false);
-  truthy('잘못된 토큰 → code는 invalid_token 계열', res3.code === 'invalid_token');
+  eq('잘못된 토큰 → invalid_token (canRegister 미노출 — 전체 shape)', res3, { ok: false, code: 'invalid_token' });
 
   const res4 = h.callAction({ action: 'whoami' });
   eq('토큰 없음 → no_token', res4, { ok: false, code: 'no_token' });
