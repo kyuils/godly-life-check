@@ -208,6 +208,15 @@ export function createHarness(seed = {}) {
   };
 
   const scriptProps = { SHEET_ID: 'mock', OAUTH_CLIENT_ID: 'mock-client' };
+  // REGISTER_CODE seeding (contract §7): defaults to 'praise2026' unless the
+  // caller explicitly overrides it. Pass `registerCode: null` to simulate an
+  // *unset* Script Property (registration_closed path) rather than an empty
+  // string, since getProperty() returns null for a missing key.
+  if (Object.prototype.hasOwnProperty.call(seed, 'registerCode')) {
+    if (seed.registerCode !== null) scriptProps.REGISTER_CODE = seed.registerCode;
+  } else {
+    scriptProps.REGISTER_CODE = 'praise2026';
+  }
 
   const sandbox = {
     console,

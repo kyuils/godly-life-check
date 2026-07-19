@@ -10,6 +10,7 @@ function getHandler_(action) {
     setRecord: handleSetRecord,
     getAllRecords: handleGetAllRecords,
     getMembers: handleGetMembers,
+    register: handleRegister,
   };
   return ACTIONS[action] || null;
 }

@@ -14,6 +14,10 @@ const SETUP_OAUTH_CLIENT_ID = '90527666620-ududtg9blamqqp06v7i21uo4loijqs12.apps
 const SETUP_ADMIN_EMAIL = 'kyuils@gmail.com';
 const SETUP_ADMIN_NAME = '관리자';
 
+// 자가 등록 팀 코드 기본값 (contract §7). setupAll()은 REGISTER_CODE가
+// 미설정일 때만 이 값을 넣는다 — 운영 중 바꾼 값을 덮어쓰지 않는다.
+const SETUP_REGISTER_CODE = 'praise2026';
+
 function setupAll() {
   setupProperties_();
   setupTabs_();
@@ -29,6 +33,14 @@ function setupProperties_() {
   } else {
     Logger.log('Script Properties: SHEET_ID 설정 완료. OAUTH_CLIENT_ID는 아직 placeholder — ' +
       '01 문서에서 클라이언트 ID 발급 후 SETUP_OAUTH_CLIENT_ID에 붙여넣고 setupAll을 다시 실행하세요.');
+  }
+
+  // REGISTER_CODE는 미설정일 때만 기본값을 넣는다 — 운영 중 변경한 값을 보존한다.
+  if (!props.getProperty('REGISTER_CODE')) {
+    props.setProperty('REGISTER_CODE', SETUP_REGISTER_CODE);
+    Logger.log('Script Properties: REGISTER_CODE 기본값(' + SETUP_REGISTER_CODE + ') 설정 완료');
+  } else {
+    Logger.log('Script Properties: REGISTER_CODE 기존 값 유지(운영 중 변경값 보존)');
   }
 }
 

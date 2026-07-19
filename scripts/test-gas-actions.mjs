@@ -66,7 +66,7 @@ section('1. whoami');
   eq('등재 학생 → role', res1.role, 'student');
 
   const res2 = h.callAction({ action: 'whoami', idToken: 'mock:nobody@example.com' });
-  eq('미등재 email → unauthorized', res2, { ok: false, code: 'unauthorized', email: 'nobody@example.com' });
+  eq('미등재 email → unauthorized', res2, { ok: false, code: 'unauthorized', email: 'nobody@example.com', canRegister: true });
 
   const res3 = h.callAction({ action: 'whoami', idToken: 'not-a-mock-token' });
   eq('잘못된 토큰 → invalid_token', res3.ok, false);
@@ -76,7 +76,7 @@ section('1. whoami');
   eq('토큰 없음 → no_token', res4, { ok: false, code: 'no_token' });
 
   const res5 = h.callAction({ action: 'whoami', idToken: 'mock:inactive@example.com' });
-  eq('비활성 학생 → unauthorized (보너스)', res5, { ok: false, code: 'unauthorized', email: 'inactive@example.com' });
+  eq('비활성 학생 → unauthorized (보너스)', res5, { ok: false, code: 'unauthorized', email: 'inactive@example.com', canRegister: true });
 }
 
 // ============================================================
@@ -284,6 +284,126 @@ section('6. 리뷰 반영 회귀');
   const strictRow = strictData.find((row, i) => i > 0 && row[col('날짜')] === strictToday);
   eq('문자열 "false" wordRead → FALSE 저장', strictRow[col('말씀읽음')], 'FALSE');
   eq('문자열 "false" retreatPrayer → FALSE 저장', strictRow[col('수련회기도')], 'FALSE');
+}
+
+// ============================================================
+// 7. register
+// ============================================================
+section('7. register');
+{
+  // ---- 정상 가입 ----
+  {
+    const h = createHarness({ members: BASE_MEMBERS, records: [] });
+    const res = h.callAction({
+      action: 'register', idToken: 'mock:newbie@example.com',
+      name: '새신자', part: '보컬', code: 'praise2026',
+      // 클라이언트가 role/active/email을 조작해도 서버는 무시해야 한다.
+      role: 'admin', active: 'FALSE', email: 'spoof@example.com',
+    });
+    eq('정상 가입 → ok', res, { ok: true, email: 'newbie@example.com', name: '새신자', role: 'student', part: '보컬' });
+
+    const data = h.sheets.MEMBERS.data;
+    const headers = data[0];
+    const idx = (hh) => headers.indexOf(hh);
+    const row = data.find((r, i) => i > 0 && r[idx('email')] === 'newbie@example.com');
+    truthy('가입 행 존재', !!row);
+    eq('가입 행 email 소문자', row[idx('email')], 'newbie@example.com');
+    eq('가입 행 role = student (클라 admin 무시)', row[idx('role')], 'student');
+    eq('가입 행 active = TRUE (클라 FALSE 무시)', row[idx('active')], 'TRUE');
+    eq('가입 행 이름', row[idx('이름')], '새신자');
+    eq('가입 행 파트', row[idx('파트')], '보컬');
+
+    // ---- 가입 직후 whoami/setRecord 엔드투엔드 ----
+    const who = h.callAction({ action: 'whoami', idToken: 'mock:newbie@example.com' });
+    eq('가입 직후 whoami → ok', who, { ok: true, email: 'newbie@example.com', name: '새신자', role: 'student', part: '보컬' });
+
+    const today = h.todayStr();
+    const setRes = h.callAction({
+      action: 'setRecord', idToken: 'mock:newbie@example.com',
+      date: today, wordRead: true, verse: '', resolution: '', retreatPrayer: false,
+    });
+    eq('가입 직후 setRecord → ok', setRes, { ok: true });
+  }
+
+  // ---- 코드 불일치 / 정규화 ----
+  {
+    const h = createHarness({ members: BASE_MEMBERS, records: [] });
+    const bad = h.callAction({ action: 'register', idToken: 'mock:codetest1@example.com', name: '홍', code: 'wrong-code' });
+    eq('코드 불일치 → bad_code', bad, { ok: false, code: 'bad_code' });
+
+    const normalized = h.callAction({ action: 'register', idToken: 'mock:codetest2@example.com', name: '김', code: 'Praise 2026' });
+    eq("코드 'Praise 2026'(대문자+공백) → 정규화로 ok", normalized.ok, true);
+    eq('정규화 가입 role', normalized.role, 'student');
+  }
+
+  // ---- 중복 검사 ----
+  {
+    const h = createHarness({ members: BASE_MEMBERS, records: [] });
+    const before = h.sheets.MEMBERS.data.length;
+
+    const dup = h.callAction({ action: 'register', idToken: 'mock:student1@example.com', name: '홍길동', code: 'praise2026' });
+    eq('활성 중복 → already_registered', dup, { ok: false, code: 'already_registered' });
+    eq('활성 중복 → 행 수 불변', h.sheets.MEMBERS.data.length, before);
+
+    const deact = h.callAction({ action: 'register', idToken: 'mock:inactive@example.com', name: '비활성학생', code: 'praise2026' });
+    eq('비활성 재가입 → deactivated', deact, { ok: false, code: 'deactivated' });
+    eq('비활성 재가입 → 행 수 불변(밴 우회 append 없음)', h.sheets.MEMBERS.data.length, before);
+  }
+
+  // ---- REGISTER_CODE 미설정 ----
+  {
+    const h = createHarness({ members: BASE_MEMBERS, records: [], registerCode: null });
+    const res = h.callAction({ action: 'register', idToken: 'mock:closed@example.com', name: '닫힘', code: 'anything' });
+    eq('REGISTER_CODE 미설정 → registration_closed', res, { ok: false, code: 'registration_closed' });
+
+    const who = h.callAction({ action: 'whoami', idToken: 'mock:nobody-closed@example.com' });
+    eq('REGISTER_CODE 미설정 → whoami canRegister false', who,
+      { ok: false, code: 'unauthorized', email: 'nobody-closed@example.com', canRegister: false });
+  }
+
+  // ---- 설정된 하네스: 미등재 whoami canRegister true ----
+  {
+    const h = createHarness({ members: BASE_MEMBERS, records: [] }); // 기본 registerCode = 'praise2026'
+    const who = h.callAction({ action: 'whoami', idToken: 'mock:stranger@example.com' });
+    eq('설정된 하네스 → 미등재 whoami canRegister true', who,
+      { ok: false, code: 'unauthorized', email: 'stranger@example.com', canRegister: true });
+  }
+
+  // ---- 이름 검증 ----
+  {
+    const h = createHarness({ members: BASE_MEMBERS, records: [] });
+
+    const missing = h.callAction({ action: 'register', idToken: 'mock:noname@example.com', code: 'praise2026' });
+    eq('name 누락 → bad_request', missing.ok, false);
+    eq('name 누락 → code', missing.code, 'bad_request');
+
+    const tooLong = h.callAction({ action: 'register', idToken: 'mock:toolong@example.com', name: 'a'.repeat(31), code: 'praise2026' });
+    eq('name 31자 → bad_request', tooLong.code, 'bad_request');
+
+    const withNewline = h.callAction({ action: 'register', idToken: 'mock:newline@example.com', name: '홍\n길동', code: 'praise2026' });
+    eq('name 개행 포함 → ok(정리 후 저장)', withNewline.ok, true);
+    const nlHeaders = h.sheets.MEMBERS.data[0];
+    const nlRow = h.sheets.MEMBERS.data.find((r, i) => i > 0 && r[nlHeaders.indexOf('email')] === 'newline@example.com');
+    eq('개행이 제거되어 저장', nlRow[nlHeaders.indexOf('이름')], '홍길동');
+
+    const injection = h.callAction({ action: 'register', idToken: 'mock:injector@example.com', name: '=SUM(A1)', code: 'praise2026' });
+    eq('수식 인젝션 이름 → ok', injection.ok, true);
+    eq('수식 인젝션 이름 → 응답값은 escape 안 됨', injection.name, '=SUM(A1)');
+    const injHeaders = h.sheets.MEMBERS.data[0];
+    const injRow = h.sheets.MEMBERS.data.find((r, i) => i > 0 && r[injHeaders.indexOf('email')] === 'injector@example.com');
+    eq('수식 인젝션 이름 → 시트에 escape되어 저장', injRow[injHeaders.indexOf('이름')], "'=SUM(A1)");
+  }
+
+  // ---- 백오프 ----
+  {
+    const h = createHarness({ members: BASE_MEMBERS, records: [] });
+    for (let i = 0; i < 6; i++) {
+      const attempt = h.callAction({ action: 'register', idToken: 'mock:backoff@example.com', name: '테스트', code: 'wrong' });
+      eq(`bad_code 시도 ${i + 1} → bad_code`, attempt.code, 'bad_code');
+    }
+    const blocked = h.callAction({ action: 'register', idToken: 'mock:backoff@example.com', name: '테스트', code: 'praise2026' });
+    eq('bad_code 6회 이후 → too_many_attempts (정답 코드라도 차단)', blocked, { ok: false, code: 'too_many_attempts' });
+  }
 }
 
 // ============================================================

@@ -365,6 +365,8 @@
     .sheet-handle{width:36px;height:4px;border-radius:var(--radius-pill);background:var(--semantic-line-solid-normal);margin:var(--space-10) auto var(--space-6)}
     .sheet-header{padding:var(--space-4) var(--space-20) var(--space-10);display:flex;align-items:center;justify-content:space-between;gap:var(--space-12)}
     .sheet-header h3{font-size:var(--type-headline1-size);line-height:var(--type-headline1-line);letter-spacing:var(--type-headline1-tracking);font-weight:var(--weight-bold-text);margin:0}
+    .sheet-title{min-width:0;display:flex;flex-direction:column;gap:2px}
+    .sheet-sub{font-size:var(--type-caption1-size);color:var(--semantic-label-alternative);word-break:break-all}
     .sheet-close{width:36px;height:36px;border-radius:var(--radius-md);display:inline-flex;align-items:center;justify-content:center;color:var(--semantic-label-alternative)}
     .sheet-close:hover{background:var(--semantic-fill-normal)}
     .sheet-body{padding:0 var(--space-20) var(--space-20);overflow-y:auto;flex:1}
@@ -425,6 +427,23 @@
     .check-pill .check-icon{font-size:15px}
     .check-pill.read.checked{background:color-mix(in srgb, var(--dev-read) 14%, transparent);border-color:var(--dev-read);color:var(--dev-read-fg);box-shadow:0 0 0 1px color-mix(in srgb, var(--dev-read) 18%, transparent)}
     .check-pill.prayer.checked{background:color-mix(in srgb, var(--dev-prayer) 14%, transparent);border-color:var(--dev-prayer);color:var(--dev-prayer-fg);box-shadow:0 0 0 1px color-mix(in srgb, var(--dev-prayer) 18%, transparent)}
+    .check-pill.part.checked{background:color-mix(in srgb, var(--semantic-primary-normal) 12%, transparent);border-color:var(--semantic-primary-normal);color:var(--semantic-primary-normal);box-shadow:0 0 0 1px color-mix(in srgb, var(--semantic-primary-normal) 18%, transparent)}
+
+    /* ====== REGISTER (자가 등록) ====== */
+    .register{flex:1;display:flex;flex-direction:column;padding:var(--space-32) var(--space-20) calc(env(safe-area-inset-bottom) + var(--space-24))}
+    .register-hero{text-align:center;margin-bottom:var(--space-20)}
+    .register-hero h1{font-size:var(--type-heading1-size);line-height:var(--type-heading1-line);letter-spacing:var(--type-heading1-tracking);font-weight:var(--weight-bold-display);margin:0}
+    .register-sub{color:var(--semantic-label-alternative);margin:var(--space-6) 0 0;font-size:var(--type-body2-size)}
+    .register-account{display:inline-flex;flex-direction:column;gap:2px;align-items:center;margin-top:var(--space-14);padding:var(--space-8) var(--space-16);border-radius:var(--radius-lg);background:var(--semantic-fill-normal);max-width:100%}
+    .register-account .ra-label{font-size:var(--type-caption1-size);color:var(--semantic-label-alternative);font-weight:var(--weight-bold-text);letter-spacing:0.03em}
+    .register-account .ra-email{font-size:var(--type-body2-size);color:var(--semantic-label-normal);font-weight:var(--weight-bold-text);word-break:break-all}
+    .register-error{margin:0 var(--space-16) var(--space-14);padding:var(--space-10) var(--space-14);border-radius:var(--radius-md);background:color-mix(in srgb, var(--semantic-status-negative) 12%, transparent);color:var(--semantic-status-negative);font-size:var(--type-label2-size);line-height:1.5}
+    .register .form-label .req{color:var(--semantic-status-negative)}
+    .register .form-label .opt{color:var(--semantic-label-alternative);font-weight:var(--weight-medium)}
+    .part-pills{display:flex;flex-wrap:wrap;gap:var(--space-8);margin-bottom:var(--space-8)}
+    .part-pills .check-pill{min-height:40px}
+    .form-hint{margin:var(--space-6) 0 0;font-size:var(--type-label2-size);color:var(--semantic-label-alternative);line-height:1.5}
+    .register-alt{margin:var(--space-4) var(--space-16) 0}
     @keyframes chip-pop{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
     .check-pill.checked{animation:chip-pop .25s ease}
     @media (prefers-reduced-motion: reduce){.check-pill.checked{animation:none}}
@@ -863,7 +882,7 @@
                   <div ref={containerRef} className="cta-gis" />
                 </div>
               )}
-              <p className="cover-foot">찬양팀 전용 · 등록된 계정만 접근할 수 있습니다</p>
+              <p className="cover-foot">찬양팀 전용 · 처음이면 팀 등록 코드로 가입할 수 있어요</p>
             </div>
           </div>
         </div>
@@ -877,6 +896,106 @@
           <p>{email ? email + ' 계정은' : '로그인한 계정은'} 찬양팀 명단에 등록되지 않았습니다.</p>
           <p>담당 교사에게 등록을 요청하세요.</p>
           <button className="btn ghost" onClick={onSignOut}>다른 계정으로 로그인</button>
+        </div>
+      );
+    }
+
+    // ──────────────── RegisterScreen (자가 등록, 계약 §7) ────────────────
+    const PART_PRESETS = ['싱어', '악기', '엔지니어'];
+    function RegisterScreen({ email, idToken, onRegistered, onSignOut }) {
+      const [name, setName] = useState('');
+      const [part, setPart] = useState('');
+      const [code, setCode] = useState('');
+      const [submitting, setSubmitting] = useState(false);
+      const [error, setError] = useState('');
+
+      const meFrom = (r) => ({ email: r.email, name: r.name, role: r.role || 'student', part: r.part || '' });
+
+      async function submit() {
+        if (submitting) return;
+        const nm = name.trim();
+        if (!nm) { setError('이름을 입력해주세요'); return; }
+        if (!code.trim()) { setError('등록 코드를 입력해주세요'); return; }
+        setError(''); setSubmitting(true);
+        try {
+          const r = await callApi('register', { idToken, name: nm, part: part.trim(), code });
+          if (r && r.ok) { onRegistered(meFrom(r)); return; }
+          const c = r && r.code;
+          if (c === 'already_registered') {
+            const w = await callApi('whoami', { idToken });
+            if (w && w.ok) { onRegistered(meFrom(w)); return; }
+            setError('이미 등록된 계정이에요. 다른 계정으로 다시 로그인해 주세요.');
+          } else if (c === 'bad_code') {
+            setError('등록 코드가 올바르지 않아요');
+          } else if (c === 'too_many_attempts') {
+            setError('시도가 너무 많았어요. 10분 후 다시 시도해주세요.');
+          } else if (c === 'deactivated') {
+            setError('비활성화된 계정이에요. 담당 교사에게 문의하세요.');
+          } else if (c === 'registration_closed') {
+            setError('지금은 등록이 닫혀 있어요. 담당 교사에게 문의하세요.');
+          } else if (c === 'bad_request') {
+            setError('입력한 정보를 다시 확인해주세요.');
+          } else {
+            setError('등록 중 문제가 발생했어요. 잠시 후 다시 시도해주세요.');
+          }
+        } catch (e) {
+          setError('네트워크 오류로 등록하지 못했어요. 잠시 후 다시 시도해주세요.');
+        } finally {
+          setSubmitting(false);
+        }
+      }
+
+      return (
+        <div className="register">
+          <div className="register-hero">
+            <h1>찬양팀 등록</h1>
+            <p className="register-sub">아래 정보로 찬양팀에 가입해요</p>
+            <div className="register-account">
+              <span className="ra-label">로그인 계정</span>
+              <span className="ra-email">{email || '로그인한 계정'}</span>
+            </div>
+          </div>
+
+          {error && <div className="register-error" role="alert">{error}</div>}
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="reg-name">이름 <span className="req">*</span></label>
+            <input id="reg-name" className="form-input" value={name} maxLength={30}
+              onChange={(e) => setName(e.target.value)} placeholder="실명을 입력하세요"
+              autoComplete="name" disabled={submitting} />
+          </div>
+
+          <div className="form-row">
+            <label className="form-label">파트 <span className="opt">(선택)</span></label>
+            <div className="part-pills">
+              {PART_PRESETS.map((p) => (
+                <button type="button" key={p} disabled={submitting}
+                  className={'check-pill part' + (part.trim() === p ? ' checked' : '')}
+                  onClick={() => setPart(part.trim() === p ? '' : p)}>{p}</button>
+              ))}
+            </div>
+            <input className="form-input part-input" value={part} maxLength={20}
+              onChange={(e) => setPart(e.target.value)} placeholder="직접 입력 (예: 드럼, 신디)"
+              disabled={submitting} />
+          </div>
+
+          <div className="form-row">
+            <label className="form-label" htmlFor="reg-code">등록 코드 <span className="req">*</span></label>
+            <input id="reg-code" className="form-input" value={code}
+              onChange={(e) => setCode(e.target.value)} placeholder="팀 등록 코드"
+              autoComplete="off" disabled={submitting} />
+            <p className="form-hint">코드는 담당 교사에게 받을 수 있어요 · 대소문자/공백 무관</p>
+          </div>
+
+          <div className="form-row">
+            <button className="btn primary block" onClick={submit} disabled={submitting}>
+              {submitting ? '등록 중…' : '등록하기'}
+            </button>
+          </div>
+
+          <button className="btn ghost block register-alt" onClick={onSignOut} disabled={submitting}>
+            다른 계정으로 로그인
+          </button>
         </div>
       );
     }
@@ -899,7 +1018,7 @@
               setMe({ email: r.email, name: r.name, role: r.role || 'student', part: r.part || '' });
               setAuthError(null);
             } else if (r.code === 'unauthorized') {
-              setAuthError({ code: 'unauthorized', email: r.email }); setMe(null);
+              setAuthError({ code: 'unauthorized', email: r.email, canRegister: r.canRegister === true }); setMe(null);
             } else if (r.code === 'token_expired' || r.code === 'invalid_token' || r.code === 'aud_mismatch' || r.code === 'iss_mismatch' || r.code === 'email_unverified') {
               sessionStorage.removeItem('idToken');
               auth.signOut();
@@ -920,6 +1039,17 @@
         );
       }
       if (authError && authError.code === 'unauthorized') {
+        if (authError.canRegister) {
+          return (
+            <div className="app">
+              <RegisterScreen
+                email={authError.email}
+                idToken={auth.idToken}
+                onRegistered={(m) => { setMe(m); setAuthError(null); }}
+                onSignOut={auth.signOut} />
+            </div>
+          );
+        }
         return <div className="app"><UnauthorizedScreen email={authError.email} onSignOut={auth.signOut} /></div>;
       }
       if (!me) {
@@ -1353,7 +1483,10 @@
               <div className="sheet" onClick={(e) => e.stopPropagation()}>
                 <div className="sheet-handle" />
                 <div className="sheet-header">
-                  <h3>{detailStudent.name}</h3>
+                  <div className="sheet-title">
+                    <h3>{detailStudent.name}</h3>
+                    {detailStudent.email && <span className="sheet-sub">{detailStudent.email}</span>}
+                  </div>
                   <button className="sheet-close" onClick={() => setDetailStudent(null)} aria-label="닫기">✕</button>
                 </div>
                 <div className="sheet-body">
