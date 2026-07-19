@@ -36,7 +36,7 @@ function doPost(e) {
 
 // Build tag — bump whenever code is materially changed. Lets us check
 // whether the deployment captured the latest snapshot by hitting GET /exec.
-const BUILD_TAG = 'v1.0.0-godly-life-check';
+const BUILD_TAG = 'v1.1.0-self-registration';
 
 function doGet(e) {
   // Health check only. The HTML is hosted on GitHub Pages.
